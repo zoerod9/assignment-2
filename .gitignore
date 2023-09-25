@@ -1,0 +1,4 @@
+*.dSYM/*
+main
+merging_avg
+sorting_avg
