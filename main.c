@@ -4,12 +4,23 @@
 #include <unistd.h>
 #include <pthread.h>
 
-struct ThreadIndexes
+typedef struct SortingAvgInput
 {
     double average;
     double *array;
     int length;
-};
+} SortingAvgInput;
+
+typedef struct MergingAvgInput
+{
+    double *array1;
+    double *array2;
+    double *resultArray;
+    int length;
+    double average1;
+    double average2;
+    double combinedAvg;
+} MergingAvgInput;
 
 void swap(double *a, double *b)
 {
@@ -48,10 +59,10 @@ double getAverage(double *input, int inputLength)
 void *sortingAverage(void *input)
 {
 
-    selectionSort(((struct ThreadIndexes *)input)->array,
-                  ((struct ThreadIndexes *)input)->length);
+    selectionSort(((SortingAvgInput *)input)->array,
+                  ((SortingAvgInput *)input)->length);
     // we can reassign the input, and that works
-    ((struct ThreadIndexes *)input)->average = getAverage(((struct ThreadIndexes *)input)->array, ((struct ThreadIndexes *)input)->length);
+    ((SortingAvgInput *)input)->average = getAverage(((SortingAvgInput *)input)->array, ((SortingAvgInput *)input)->length);
 
     // we also return the input, which we can make work later
     pthread_exit(input);
@@ -59,12 +70,28 @@ void *sortingAverage(void *input)
 // to be called in a thread
 void *mergeArray(void *input)
 {
+    ((MergingAvgInput *)input)->combinedAvg = (((MergingAvgInput *)input)->average1 + ((MergingAvgInput *)input)->average2) / 2;
+    
+    int subsectionLength = ((MergingAvgInput *)input)->length;
+    int array1Index = 0, array2Index = 0, combinedArrayIndex = 0;
 
-    sleep(1);
+    while (array1Index < subsectionLength && array2Index < subsectionLength) // this loop will run till a or b is completely traversed
+    {
+        if (((MergingAvgInput *)input)->array1[array1Index] < ((MergingAvgInput *)input)->array2[array2Index])
+            ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array1[array1Index++];
+        // here, as soon as we copy an element in c, we increment the iterator so that the next element is copied at next index.
+        // When we copy an element from a to c, we increment i also because now we will compare with the next element of a.
+        else
+            ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array2[array2Index++];
+    }
 
-    // should merge two arrays into one
+    while (array1Index < subsectionLength) // copying the leftover elements of a, if any
+        ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array1[array1Index++];
 
-    return NULL;
+    while (array2Index < subsectionLength) // copying the leftover elements of b, if any
+        ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array2[array2Index++];
+
+    return input;
 }
 
 int counter;
@@ -105,7 +132,7 @@ int main(int argCount, char *arvg[])
     // create thB sortThread_avg to sort B and compute its average
 
     pthread_t sortingAvg;
-    struct ThreadIndexes *input = malloc(sizeof(struct ThreadIndexes));
+    SortingAvgInput *input = malloc(sizeof(SortingAvgInput));
     input->array = b;
     input->length = desiredLength;
     input->average = 0;
@@ -135,22 +162,47 @@ int main(int argCount, char *arvg[])
     }
 
     pthread_t sortingAverageFirstHalf;
-    struct ThreadIndexes *firstInput = malloc(sizeof(struct ThreadIndexes));
+    SortingAvgInput *firstInput = malloc(sizeof(SortingAvgInput));
     firstInput->array = aFirstHalf;
-    firstInput->length = desiredLength/2;
+    firstInput->length = desiredLength / 2;
     firstInput->average = 0;
     pthread_create(&sortingAverageFirstHalf, NULL, sortingAverage, firstInput);
 
     pthread_t sortingAverageSecondHalf;
-    struct ThreadIndexes *secondInput = malloc(sizeof(struct ThreadIndexes));
+    SortingAvgInput *secondInput = malloc(sizeof(SortingAvgInput));
     secondInput->array = aSecondHalf;
-    secondInput->length = desiredLength/2;
+    secondInput->length = desiredLength / 2;
     secondInput->average = 0;
     pthread_create(&sortingAverageSecondHalf, NULL, sortingAverage, secondInput);
 
     pthread_join(sortingAverageFirstHalf, NULL);
     pthread_join(sortingAverageSecondHalf, NULL);
 
+    pthread_t mergingAverage;
+    MergingAvgInput *mergingAverageInput = malloc(sizeof(MergingAvgInput));
+    mergingAverageInput->array1 = firstInput->array;
+    mergingAverageInput->array2 = secondInput->array;
+    mergingAverageInput->average1 = firstInput->average;
+    mergingAverageInput->average2 = secondInput->average;
+    mergingAverageInput->length = desiredLength / 2;
+    mergingAverageInput->combinedAvg = 0;
+    mergingAverageInput->resultArray = mergedArray;
+
+    pthread_create(&mergingAverage, NULL, mergeArray, mergingAverageInput);
+
+    pthread_join(mergingAverage, NULL);
+
+    for (int j = 0; j < desiredLength; j++)
+    {
+        printf("%lf\n", a[j]);
+    }
+
+    puts("--------------");
+
+    for (int j = 0; j < desiredLength; j++)
+    {
+        printf("%lf\n", mergingAverageInput->resultArray[j]);
+    }
 
     // next steps:
     // create yet another thread to merge both arrays
