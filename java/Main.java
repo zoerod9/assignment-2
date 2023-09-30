@@ -6,6 +6,11 @@ public class Main {
         double average;
         double[] array;
 
+        public SortingAvgInput(double[] array) {
+            this.average = 0;
+            this.array = array;
+        }
+
         public double getAverage() {
             return average;
         }
@@ -43,9 +48,14 @@ public class Main {
         @Override
         public void run() {
             System.out.println("SortingAvg!");
-            System.out.println("my input avg: " + input.getAverage());
-            input.setAverage(8);
 
+            System.out.println("IN thread");
+            for (int i = 0; i < input.getArray().length; i++) {
+                System.out.println(input.getArray()[i]);
+            }
+
+            sort(input.getArray());
+            input.setAverage(getAverage(input.getArray()));
         }
     }
 
@@ -56,7 +66,7 @@ public class Main {
         }
     }
 
-    void sort(int input[]) {
+    static void sort(double input[]) {
         int n = input.length;
 
         // One by one move boundary of unsorted subarray
@@ -69,13 +79,13 @@ public class Main {
 
             // Swap the found minimum element with the first
             // element
-            int temp = input[minIndex];
+            double temp = input[minIndex];
             input[minIndex] = input[i];
             input[i] = temp;
         }
     }
 
-    double getAverage(double[] input) {
+    static double getAverage(double[] input) {
         double result = 0;
         for (int i = 0; i < input.length; i++) {
             result = result + input[i];
@@ -84,23 +94,48 @@ public class Main {
         return result / input.length;
     }
 
-    double randomNumber() {
+    static double randomNumber() {
         Random random = new Random();
-        return random.nextDouble();
+        return (random.nextDouble() * 999) + 1;
     }
 
     public static void main(String[] args) throws InterruptedException {
 
-        SortingAvgInput input1 = new SortingAvgInput();
-        input1.setAverage(5);
+        int desiredLength = Integer.parseInt(args[0]);
 
-        Runnable runnable = new SortingAvg(input1);
+        double[] a = new double[desiredLength];
+        double[] b = new double[desiredLength];
+
+        // for each item in array,
+        for (int i = 0; i < desiredLength; i++) {
+            // insert random number between 1 and 1000 into arrayToSort's index
+            a[i] = randomNumber();
+        }
+
+        // copy a into b
+        for (int j = 0; j < desiredLength; j++) {
+            b[j] = a[j];
+        }
+
+        SortingAvgInput input = new SortingAvgInput(b);
+
+        Runnable runnable = new SortingAvg(input);
         Thread t = new Thread(runnable);
+
+        System.out.println("Before thread");
+        for (int i = 0; i < desiredLength; i++) {
+            System.out.println(input.getArray()[i]);
+        }
+        // System.out.println(input.getAverage());
 
         t.start();
         t.join();
 
-        System.out.println("my output avg" + input1.getAverage());
+        System.out.println("After thread");
+        for (int i = 0; i < desiredLength; i++) {
+            System.out.println(input.getArray()[i]);
+        }
+        // System.out.println(input.getAverage());
 
     }
 }
