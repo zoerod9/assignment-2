@@ -71,7 +71,7 @@ void *sortingAverage(void *input)
 void *mergeArray(void *input)
 {
     ((MergingAvgInput *)input)->combinedAvg = (((MergingAvgInput *)input)->average1 + ((MergingAvgInput *)input)->average2) / 2;
-    
+
     int subsectionLength = ((MergingAvgInput *)input)->length;
     int array1Index = 0, array2Index = 0, combinedArrayIndex = 0;
 
@@ -98,13 +98,18 @@ int counter;
 double randomNumber()
 {
     srand(time(NULL) + counter);
-    counter += 876456479; // an actual random number to throw the seed off
+    counter += 87564659;
     double div = RAND_MAX / 999;
     return 1 + (rand() / div);
 }
 
 int main(int argCount, char *arvg[])
 {
+
+    // time measuring devices
+    struct timespec ts_begin, ts_end;
+    double elapsed;
+
     int desiredLength;
     sscanf(arvg[1], "%i", &desiredLength);
 
@@ -122,6 +127,13 @@ int main(int argCount, char *arvg[])
         a[i] = randomNumber();
     }
 
+    puts("-----Unsorted--Input-------");
+    for (int j = 0; j < desiredLength; j++)
+    {
+        printf("%lf\n", a[j]);
+    }
+    puts("END--Unsorted--Input----END");
+
     // copy a into b
     for (int j = 0; j < desiredLength; j++)
     {
@@ -131,6 +143,7 @@ int main(int argCount, char *arvg[])
     //-------------------- ONE THREAD CASE --------------------
     // create thB sortThread_avg to sort B and compute its average
 
+    clock_gettime(CLOCK_MONOTONIC, &ts_begin);
     pthread_t sortingAvg;
     SortingAvgInput *input = malloc(sizeof(SortingAvgInput));
     input->array = b;
@@ -141,10 +154,15 @@ int main(int argCount, char *arvg[])
 
     pthread_join(sortingAvg, NULL);
 
-    // for (int j = 0; j < desiredLength; j++)
-    // {
-    //     printf("%lf\n", b[j]);
-    // }
+    clock_gettime(CLOCK_MONOTONIC, &ts_end);
+    elapsed = ts_end.tv_sec - ts_begin.tv_sec;
+    elapsed += (ts_end.tv_nsec - ts_begin.tv_nsec) / 1000000000.0;
+
+    printf("Sorting by ONE thread is done in: %f ms\n", elapsed * 1000);
+    for (int j = 0; j < 10; j++)
+    {
+        printf("Value %d %lf\n", j + 1, b[j]);
+    }
 
     // //-------------------- TWO THREADS CASE --------------------
     double *aFirstHalf = malloc(sizeof(double) * (desiredLength / 2));
@@ -161,6 +179,7 @@ int main(int argCount, char *arvg[])
         aSecondHalf[j] = a[j + desiredLength / 2];
     }
 
+    clock_gettime(CLOCK_MONOTONIC, &ts_begin);
     pthread_t sortingAverageFirstHalf;
     SortingAvgInput *firstInput = malloc(sizeof(SortingAvgInput));
     firstInput->array = aFirstHalf;
@@ -192,23 +211,15 @@ int main(int argCount, char *arvg[])
 
     pthread_join(mergingAverage, NULL);
 
-    for (int j = 0; j < desiredLength; j++)
+    clock_gettime(CLOCK_MONOTONIC, &ts_end);
+    elapsed = ts_end.tv_sec - ts_begin.tv_sec;
+    elapsed += (ts_end.tv_nsec - ts_begin.tv_nsec) / 1000000000.0;
+
+    printf("Sorting by TWO threads is done in: %f ms\n", elapsed * 1000);
+    for (int j = 0; j < 10; j++)
     {
-        printf("%lf\n", a[j]);
+        printf("Value %d %lf\n", j + 1, mergedArray[j]);
     }
 
-    puts("--------------");
-
-    for (int j = 0; j < desiredLength; j++)
-    {
-        printf("%lf\n", mergingAverageInput->resultArray[j]);
-    }
-
-    // next steps:
-    // create yet another thread to merge both arrays
-
-    // add timing stuff (how long each thing took)
-
-    // write all this in java
     return 0;
 }
