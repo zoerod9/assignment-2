@@ -1,4 +1,5 @@
-*.dSYM/*
+c/main.dSYM/*
 main
 merging_avg
 sorting_avg
+*.class

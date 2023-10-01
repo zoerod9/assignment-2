@@ -55,19 +55,16 @@ double getAverage(double *input, int inputLength)
     return result / inputLength;
 }
 
-// to be called in a thread
 void *sortingAverage(void *input)
 {
 
     selectionSort(((SortingAvgInput *)input)->array,
                   ((SortingAvgInput *)input)->length);
-    // we can reassign the input, and that works
     ((SortingAvgInput *)input)->average = getAverage(((SortingAvgInput *)input)->array, ((SortingAvgInput *)input)->length);
 
-    // we also return the input, which we can make work later
     pthread_exit(input);
 }
-// to be called in a thread
+
 void *mergeArray(void *input)
 {
     ((MergingAvgInput *)input)->combinedAvg = (((MergingAvgInput *)input)->average1 + ((MergingAvgInput *)input)->average2) / 2;
@@ -75,20 +72,18 @@ void *mergeArray(void *input)
     int subsectionLength = ((MergingAvgInput *)input)->length;
     int array1Index = 0, array2Index = 0, combinedArrayIndex = 0;
 
-    while (array1Index < subsectionLength && array2Index < subsectionLength) // this loop will run till a or b is completely traversed
+    while (array1Index < subsectionLength && array2Index < subsectionLength)
     {
         if (((MergingAvgInput *)input)->array1[array1Index] < ((MergingAvgInput *)input)->array2[array2Index])
             ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array1[array1Index++];
-        // here, as soon as we copy an element in c, we increment the iterator so that the next element is copied at next index.
-        // When we copy an element from a to c, we increment i also because now we will compare with the next element of a.
         else
             ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array2[array2Index++];
     }
 
-    while (array1Index < subsectionLength) // copying the leftover elements of a, if any
+    while (array1Index < subsectionLength)
         ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array1[array1Index++];
 
-    while (array2Index < subsectionLength) // copying the leftover elements of b, if any
+    while (array2Index < subsectionLength)
         ((MergingAvgInput *)input)->resultArray[combinedArrayIndex++] = ((MergingAvgInput *)input)->array2[array2Index++];
 
     return input;
@@ -127,12 +122,12 @@ int main(int argCount, char *arvg[])
         a[i] = randomNumber();
     }
 
-    puts("-----Unsorted--Input-------");
-    for (int j = 0; j < desiredLength; j++)
-    {
-        printf("%lf\n", a[j]);
-    }
-    puts("END--Unsorted--Input----END");
+    // puts("-----Unsorted--Input-------");
+    // for (int j = 0; j < desiredLength; j++)
+    // {
+    //     printf("%lf\n", a[j]);
+    // }
+    // puts("END--Unsorted--Input----END");
 
     // copy a into b
     for (int j = 0; j < desiredLength; j++)
@@ -159,8 +154,12 @@ int main(int argCount, char *arvg[])
     elapsed += (ts_end.tv_nsec - ts_begin.tv_nsec) / 1000000000.0;
 
     printf("Sorting by ONE thread is done in: %f ms\n", elapsed * 1000);
-    for (int j = 0; j < 10; j++)
+    for (int j = 0; j < input->length; j++)
     {
+        if (j == 10)
+        {
+            break;
+        }
         printf("Value %d %lf\n", j + 1, b[j]);
     }
 
@@ -216,8 +215,12 @@ int main(int argCount, char *arvg[])
     elapsed += (ts_end.tv_nsec - ts_begin.tv_nsec) / 1000000000.0;
 
     printf("Sorting by TWO threads is done in: %f ms\n", elapsed * 1000);
-    for (int j = 0; j < 10; j++)
+    for (int j = 0; j < mergingAverageInput->length; j++)
     {
+        if (j == 10)
+        {
+            break;
+        }
         printf("Value %d %lf\n", j + 1, mergedArray[j]);
     }
 
